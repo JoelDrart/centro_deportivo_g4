@@ -1,0 +1,255 @@
+{% extends "base.html" %} {% block title %}Mis Reservas - Centro Deportivo{%
+endblock %} {% block content %}
+<div class="max-w-6xl mx-auto">
+    <div class="flex justify-between items-center mb-8">
+        <h1 class="text-3xl font-bold text-gray-900">Mis Reservas</h1>
+        <a
+            href="{{ url_for('reservations.make_reservation') }}"
+            class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+        >
+            <i class="fas fa-plus mr-2"></i>Nueva Reserva
+        </a>
+    </div>
+
+    <!-- Filtros -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div class="flex flex-wrap gap-4 items-center">
+            <div class="flex-1 min-w-60">
+                <label class="block text-sm font-medium text-gray-700 mb-1"
+                    >Filtrar por estado:</label
+                >
+                <select
+                    id="status-filter"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                    <option value="all">Todas las reservas</option>
+                    <option value="pending">Pendientes</option>
+                    <option value="confirmed">Confirmadas</option>
+                    <option value="completed">Completadas</option>
+                    <option value="cancelled">Canceladas</option>
+                </select>
+            </div>
+            <div class="flex-1 min-w-60">
+                <label class="block text-sm font-medium text-gray-700 mb-1"
+                    >Ordenar por:</label
+                >
+                <select
+                    id="sort-filter"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                    <option value="date_desc">Fecha (más reciente)</option>
+                    <option value="date_asc">Fecha (más antigua)</option>
+                    <option value="created_desc">
+                        Creación (más reciente)
+                    </option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    {% if reservations %}
+    <div class="grid gap-6">
+        {% for reservation in reservations %}
+        <div
+            class="bg-white rounded-lg shadow-md p-6 reservation-card"
+            data-status="{{ reservation.status.value }}"
+            data-date="{{ reservation.start_time.strftime('%Y-%m-%d') }}"
+        >
+            <div class="flex justify-between items-start mb-4">
+                <div class="flex-1">
+                    <div class="flex items-center gap-4 mb-2">
+                        <h3 class="text-xl font-semibold text-gray-900">
+                            {{ reservation.court.name }}
+                        </h3>
+                        <span
+                            class="reservation-status px-3 py-1 rounded-full text-sm font-medium {% if reservation.status.value == 'pending' %}bg-yellow-100 text-yellow-800 {% elif reservation.status.value == 'confirmed' %}bg-green-100 text-green-800 {% elif reservation.status.value == 'completed' %}bg-blue-100 text-blue-800 {% elif reservation.status.value == 'cancelled' %}bg-red-100 text-red-800 {% endif %}"
+                        >
+                            {{ reservation.status.value.title() }}
+                        </span>
+                    </div>
+                    <div
+                        class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600"
+                    >
+                        <div>
+                            <span class="font-medium">Fecha:</span>
+                            <p class="text-gray-900">
+                                {{ reservation.start_time.strftime('%d/%m/%Y')
+                                }}
+                            </p>
+                        </div>
+                        <div>
+                            <span class="font-medium">Horario:</span>
+                            <p class="text-gray-900">
+                                {{ reservation.start_time.strftime('%H:%M') }} -
+                                {{ reservation.end_time.strftime('%H:%M') }}
+                            </p>
+                        </div>
+                        <div>
+                            <span class="font-medium">Deporte:</span>
+                            <p class="text-gray-900">
+                                {{ reservation.court.sport_type.title() }}
+                            </p>
+                        </div>
+                        <div>
+                            <span class="font-medium">Costo:</span>
+                            <p class="text-gray-900 font-semibold">
+                                ${{ "%.2f"|format(reservation.total_amount) }}
+                            </p>
+                        </div>
+                    </div>
+                    {% if reservation.notes %}
+                    <div class="mt-3">
+                        <span class="font-medium text-sm text-gray-600"
+                            >Notas:</span
+                        >
+                        <p class="text-gray-900 mt-1">
+                            {{ reservation.notes }}
+                        </p>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="flex flex-col gap-2 ml-4">
+                    <!-- Botones de acción según el estado -->
+                    {% if reservation.status.value == 'pending' %}
+                    <button
+                        onclick="cancelReservation({{ reservation.id }})"
+                        class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm"
+                    >
+                        <i class="fas fa-times mr-1"></i>Cancelar
+                    </button>
+                    {% elif reservation.status.value == 'confirmed' %} {% if
+                    reservation.start_time.date() > today %}
+                    <button
+                        onclick="cancelReservation({{ reservation.id }})"
+                        class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm"
+                    >
+                        <i class="fas fa-times mr-1"></i>Cancelar
+                    </button>
+                    {% endif %}
+                    <a
+                        href="{{ url_for('reservations.court_schedule', court_id=reservation.court.id, date=reservation.start_time.strftime('%Y-%m-%d')) }}"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm text-center"
+                    >
+                        <i class="fas fa-calendar mr-1"></i>Ver Horario
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Información adicional -->
+            <div class="border-t pt-4 mt-4">
+                <div
+                    class="flex justify-between items-center text-sm text-gray-500"
+                >
+                    <span
+                        >Reservado el {{
+                        reservation.created_at.strftime('%d/%m/%Y a las %H:%M')
+                        }}</span
+                    >
+                    <span>ID: #{{ reservation.id }}</span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white rounded-lg shadow-md p-12 text-center">
+        <i class="fas fa-calendar-times text-6xl text-gray-400 mb-4"></i>
+        <h3 class="text-xl font-semibold text-gray-900 mb-2">
+            No tienes reservas aún
+        </h3>
+        <p class="text-gray-600 mb-6">
+            ¡Comienza reservando una cancha para tu deporte favorito!
+        </p>
+        <a
+            href="{{ url_for('reservations.make_reservation') }}"
+            class="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition-colors"
+        >
+            <i class="fas fa-plus mr-2"></i>Hacer Primera Reserva
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    // Función para cancelar reserva
+    function cancelReservation(reservationId) {
+        if (confirm("¿Estás seguro de que quieres cancelar esta reserva?")) {
+            fetch(`/cancel_reservation/${reservationId}`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token() }}",
+                },
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert("Error al cancelar la reserva: " + data.message);
+                    }
+                })
+                .catch((error) => {
+                    console.error("Error:", error);
+                    alert("Error al cancelar la reserva");
+                });
+        }
+    }
+
+    // Filtros
+    document.addEventListener("DOMContentLoaded", function () {
+        const statusFilter = document.getElementById("status-filter");
+        const sortFilter = document.getElementById("sort-filter");
+        const reservationCards = document.querySelectorAll(".reservation-card");
+
+        function applyFilters() {
+            const statusValue = statusFilter.value;
+            const sortValue = sortFilter.value;
+
+            // Filtrar por estado
+            reservationCards.forEach((card) => {
+                const cardStatus = card.dataset.status;
+                if (statusValue === "all" || statusValue === cardStatus) {
+                    card.style.display = "block";
+                } else {
+                    card.style.display = "none";
+                }
+            });
+
+            // Ordenar
+            const container = document.querySelector(".grid");
+            const cards = Array.from(
+                container.querySelectorAll(
+                    '.reservation-card:not([style*="display: none"])'
+                )
+            );
+
+            cards.sort((a, b) => {
+                const dateA = new Date(a.dataset.date);
+                const dateB = new Date(b.dataset.date);
+
+                if (sortValue === "date_desc") {
+                    return dateB - dateA;
+                } else if (sortValue === "date_asc") {
+                    return dateA - dateB;
+                } else if (sortValue === "created_desc") {
+                    // Simplificado - en producción usarías timestamp real
+                    return (
+                        b.querySelector("[data-date]") -
+                        a.querySelector("[data-date]")
+                    );
+                }
+                return 0;
+            });
+
+            // Reordenar elementos
+            cards.forEach((card) => container.appendChild(card));
+        }
+
+        statusFilter.addEventListener("change", applyFilters);
+        sortFilter.addEventListener("change", applyFilters);
+    });
+</script>
+{% endblock %}

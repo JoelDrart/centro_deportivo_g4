@@ -1,0 +1,175 @@
+{% extends "base.html" %} {% block title %}Hacer Reserva - Centro Deportivo{%
+endblock %} {% block content %}
+<div class="max-w-2xl mx-auto">
+    <h1 class="text-3xl font-bold text-gray-900 mb-8">Hacer Reserva</h1>
+
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <form method="POST" class="space-y-6">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <div>
+                <label
+                    for="court_id"
+                    class="block text-sm font-medium text-gray-700 mb-2"
+                >
+                    Seleccionar Cancha
+                </label>
+                <select
+                    id="court_id"
+                    name="court_id"
+                    required
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                    <option value="">Selecciona una cancha</option>
+                    {% for court in courts %}
+                    <option
+                        value="{{ court.id }}"
+                        data-rate="{{ court.hourly_rate }}"
+                    >
+                        {{ court.name }} ({{ court.sport_type.title() }}) - ${{
+                        court.hourly_rate }}/hora
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="grid grid-cols-3 gap-4">
+                <div>
+                    <label
+                        for="date"
+                        class="block text-sm font-medium text-gray-700 mb-2"
+                    >
+                        Fecha
+                    </label>
+                    <input
+                        type="date"
+                        id="date"
+                        name="date"
+                        required
+                        min="{{ (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d') }}"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                </div>
+
+                <div>
+                    <label
+                        for="start_time"
+                        class="block text-sm font-medium text-gray-700 mb-2"
+                    >
+                        Hora Inicio
+                    </label>
+                    <input
+                        type="time"
+                        id="start_time"
+                        name="start_time"
+                        required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                </div>
+
+                <div>
+                    <label
+                        for="end_time"
+                        class="block text-sm font-medium text-gray-700 mb-2"
+                    >
+                        Hora Fin
+                    </label>
+                    <input
+                        type="time"
+                        id="end_time"
+                        name="end_time"
+                        required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                </div>
+            </div>
+
+            <div>
+                <label
+                    for="notes"
+                    class="block text-sm font-medium text-gray-700 mb-2"
+                >
+                    Notas (Opcional)
+                </label>
+                <textarea
+                    id="notes"
+                    name="notes"
+                    rows="3"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Información adicional sobre la reserva..."
+                ></textarea>
+            </div>
+
+            <div id="cost-preview" class="hidden bg-blue-50 p-4 rounded-md">
+                <h3 class="font-semibold text-blue-900 mb-2">
+                    Resumen de Costo
+                </h3>
+                <p class="text-blue-800">
+                    <span id="duration-text"></span> ×
+                    <span id="rate-text"></span> =
+                    <span id="total-cost" class="font-bold"></span>
+                </p>
+            </div>
+
+            <div class="flex justify-end space-x-4">
+                <a
+                    href="{{ url_for('reservations.view_courts') }}"
+                    class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                >
+                    Cancelar
+                </a>
+                <button
+                    type="submit"
+                    class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                >
+                    Crear Reserva
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const courtSelect = document.getElementById("court_id");
+        const dateInput = document.getElementById("date");
+        const startTimeInput = document.getElementById("start_time");
+        const endTimeInput = document.getElementById("end_time");
+        const costPreview = document.getElementById("cost-preview");
+        const durationText = document.getElementById("duration-text");
+        const rateText = document.getElementById("rate-text");
+        const totalCost = document.getElementById("total-cost");
+
+        function updateCostPreview() {
+            const selectedCourt =
+                courtSelect.options[courtSelect.selectedIndex];
+            const startTime = startTimeInput.value;
+            const endTime = endTimeInput.value;
+
+            if (selectedCourt.value && startTime && endTime) {
+                const rate = parseFloat(selectedCourt.dataset.rate);
+                const start = new Date("2000-01-01T" + startTime);
+                const end = new Date("2000-01-01T" + endTime);
+
+                if (end > start) {
+                    const hours = (end - start) / (1000 * 60 * 60);
+                    const total = hours * rate;
+
+                    durationText.textContent = `${hours} hora(s)`;
+                    rateText.textContent = `${rate.toFixed(2)}/hora`;
+                    totalCost.textContent = `${total.toFixed(2)}`;
+
+                    costPreview.classList.remove("hidden");
+                } else {
+                    costPreview.classList.add("hidden");
+                }
+            } else {
+                costPreview.classList.add("hidden");
+            }
+        }
+
+        courtSelect.addEventListener("change", updateCostPreview);
+        startTimeInput.addEventListener("change", updateCostPreview);
+        endTimeInput.addEventListener("change", updateCostPreview);
+    });
+</script>
+{% endblock %}

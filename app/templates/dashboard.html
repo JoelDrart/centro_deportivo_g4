@@ -1,0 +1,17 @@
+{% extends "base.html" %} {% block title %}Panel de Usuario{% endblock %} {%
+block content %}
+<div class="container mx-auto py-8">
+    <h2 class="text-2xl font-bold mb-4">Tus Reservas</h2>
+    {% if reservations %}
+    <ul class="list-disc pl-6">
+        {% for r in reservations %}
+        <li>
+            Reserva #{{ r.id }} - {{ r.court.name }} - {{ r.date }} {{ r.time }}
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p>No tienes reservas activas.</p>
+    {% endif %}
+</div>
+{% endblock %}

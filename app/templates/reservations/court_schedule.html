@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+{% block title %}Horario de Cancha - Centro Deportivo{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">Horario de {{ court.name }}</h1>
+            <p class="text-gray-600 mt-1">{{ court.sport_type.title() }} - Tarifa: ${{ "%.2f"|format(court.hourly_rate) }}/hora</p>
+        </div>
+        <div class="flex gap-4">
+            <a href="{{ url_for('reservations.my_reservations') }}" 
+               class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition-colors">
+                <i class="fas fa-arrow-left mr-2"></i>Mis Reservas
+            </a>
+            <a href="{{ url_for('reservations.make_reservation') }}" 
+               class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
+                <i class="fas fa-plus mr-2"></i>Nueva Reserva
+            </a>
+        </div>
+    </div>
+
+    <!-- Navegación de fechas -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold text-gray-900">Seleccionar Fecha</h2>
+            <div class="flex gap-2">
+                <button onclick="changeWeek(-1)" class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <button onclick="changeWeek(1)" class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="flex flex-wrap gap-2 mb-4" id="date-selector">
+            <!-- Los días se generarán con JavaScript -->
+        </div>
+        
+        <div class="flex items-center gap-4 text-sm">
+            <div class="flex items-center gap-2">
+                <div class="w-4 h-4 bg-green-200 rounded"></div>
+                <span class="text-gray-600">Disponible</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="w-4 h-4 bg-red-200 rounded"></div>
+                <span class="text-gray-600">Ocupado</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="w-4 h-4 bg-blue-200 rounded"></div>
+                <span class="text-gray-600">Tus reservas</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Horario de la cancha -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-semibold text-gray-900">
+                Horario del <span id="selected-date-display">{{ selected_date.strftime('%A, %d de %B %Y') }}</span>
+            </h2>
+            <div class="text-sm text-gray-600">
+                Horario: {{ court.opening_time.strftime('%H:%M') }} - {{ court.closing_time.strftime('%H:%M') }}
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="time-slots">
+            <!-- Los slots de tiempo se generarán con JavaScript -->
+        </div>
+        
+        <div class="mt-6 pt-6 border-t">
+            <div class="flex justify-between items-center">
+                <div class="text-sm text-gray-600">
+                    <strong>Nota:</strong> Solo puedes reservar con al menos 2 horas de anticipación
+                </div>
+                <button onclick="refreshSchedule()" 
+                        class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors">
+                    <i class="fas fa-sync-alt mr-2"></i>Actualizar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentDate = new Date('{{ selected_date.strftime("%Y-%m-%d") }}');
+let selectedDate = new Date(currentDate);
+const courtId = {{ court.id }};
+const userId = {{ current_user.id }};
+const openingTime = '{{ court.opening_time.strftime("%H:%M") }}';
+const closingTime = '{{ court.closing_time.strftime("%H:%M") }}';
+
+// Función para cambiar semana
+function changeWeek(direction) {
+    currentDate.setDate(currentDate.getDate() + (direction * 7));
+    generateDateSelector();
+}
+
+// Función para generar selector de fechas
+function generateDateSelector() {
+    const dateSelector = document.getElementById('date-selector');
+    dateSelector.innerHTML = '';
+    
+    const startOfWeek = new Date(currentDate);
+    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    for (let i = 0; i < 7; i++) {
+        const date = new Date(startOfWeek);
+        date.setDate(startOfWeek.getDate() + i);
+        
+        const dayButton = document.createElement('button');
+        dayButton.className = `px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            date.getTime() === selectedDate.getTime() 
+                ? 'bg-blue-600 text-white' 
+                : date < today 
+                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+        }`;
+        
+        dayButton.innerHTML = `
+            <div class="text-xs">${date.toLocaleDateString('es-ES', { weekday: 'short' })}</div>
+            <div class="font-bold">${date.getDate()}</div>
+            <div class="text-xs">${date.toLocaleDateString('es-ES', { month: 'short' })}</div>
+        `;
+        
+        if (date >= today) {
+            dayButton.onclick = () => selectDate(date);
+        }
+        
+        dateSelector.appendChild(dayButton);
+    }
+}
+
+// Función para seleccionar fecha
+function selectDate(date) {
+    selectedDate = new Date(date);
+    generateDateSelector();
+    updateSelectedDateDisplay();
+    loadTimeSlots();
+}
+
+// Función para actualizar display de fecha seleccionada
+function updateSelectedDateDisplay() {
+    const display = document.getElementById('selected-date-display');
+    display.textContent = selectedDate.toLocaleDateString('es-ES', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+}
+
+// Función para cargar slots de tiempo
+function loadTimeSlots() {
+    const timeSlotsContainer = document.getElementById('time-slots');
+    timeSlotsContainer.innerHTML = '<div class="col-span-full text-center py-4">Cargando horarios...</div>';
+    
+    const dateStr = selectedDate.toISOString().split('T')[0];
+    
+    fetch(`/api/court/${courtId}/schedule?date=${dateStr}`)
+        .then(response => response.json())
+        .then(data => {
+            generateTimeSlots(data.occupied_slots || []);
+        })
+        .catch(error => {
+            console.error('Error loading time slots:', error);
+            timeSlotsContainer.innerHTML = '<div class="col-span-full text-center py-4 text-red-600">Error al cargar los horarios</div>';
+        });
+}
+
+// Función para generar slots de tiempo
+function generateTimeSlots(occupiedSlots) {
+    const timeSlotsContainer = document.getElementById('time-slots');
+    timeSlotsContainer.innerHTML = '';
+    
+    const [openHour, openMinute] = openingTime.split(':').map(Number);
+    const [closeHour, closeMinute] = closingTime.split(':').map(Number);
+    
+    const now = new Date();
+    const isToday = selectedDate.toDateString() === now.toDateString();
+    const minBookingTime = new Date(now.getTime() + 2 * 60 * 60 * 1000); // 2 horas adelante
+    
+    for (let hour = openHour; hour < closeHour; hour++) {
+        const timeSlot = document.createElement('div');
+        const timeStr = `${hour.toString().padStart(2, '0')}:00`;
+        const nextTimeStr = `${(hour + 1).toString().padStart(2, '0')}:00`;
+        
+        // Verificar si está ocupado
+        const isOccupied = occupiedSlots.some(slot => {
+            const slotStart = slot.start_time.substring(0, 5);
+            const slotEnd = slot.end_time.substring(0, 5);
+            return timeStr >= slotStart && timeStr < slotEnd;
+        });
+        
+        // Verificar si es reserva propia
+        const isOwnReservation = occupiedSlots.some(slot => {
+            const slotStart = slot.start_time.substring(0, 5);
+            const slotEnd = slot.end_time.substring(0, 5);
+            return timeStr >= slotStart && timeStr < slotEnd && slot.user_id === userId;
+        });
+        
+        // Verificar si es muy pronto para reservar
+        const slotDateTime = new Date(selectedDate);
+        slotDateTime.setHours(hour, 0, 0, 0);
+        const isTooSoon = isToday && slotDateTime < minBookingTime;
+        
+        let className = 'p-4 rounded-lg border-2 transition-all ';
+        let clickable = false;
+        
+        if (isOwnReservation) {
+            className += 'bg-blue-100 border-blue-300 text-blue-800';
+        } else if (isOccupied) {
+            className += 'bg-red-100 border-red-300 text-red-800';
+        } else if (isTooSoon) {
+            className += 'bg-gray-100 border-gray-300 text-gray-500';
+        } else {
+            className += 'bg-green-100 border-green-300 text-green-800 hover:bg-green-200 cursor-pointer';
+            clickable = true;
+        }
+        
+        timeSlot.className = className;
+        timeSlot.innerHTML = `
+            <div class="font-semibold">${timeStr} - ${nextTimeStr}</div>
+            <div class="text-sm mt-1">
+                ${isOwnReservation ? 'Tu reserva' : 
+                  isOccupied ? 'Ocupado' : 
+                  isTooSoon ? 'Muy pronto' : 
+                  'Disponible'}
+            </div>
+            ${clickable ? '<div class="text-xs mt-2 text-green-600">Click para reservar</div>' : ''}
+        `;
+        
+        if (clickable) {
+            timeSlot.onclick = () => makeReservation(timeStr, nextTimeStr);
+        }
+        
+        timeSlotsContainer.appendChild(timeSlot);
+    }
+}
+
+// Función para hacer reserva
+function makeReservation(startTime, endTime) {
+    const dateStr = selectedDate.toISOString().split('T')[0];
+    const url = new URL('/make_reservation', window.location.origin);
+    url.searchParams.set('court_id', courtId);
+    url.searchParams.set('date', dateStr);
+    url.searchParams.set('start_time', startTime);
+    url.searchParams.set('end_time', endTime);
+    
+    window.location.href = url.toString();
+}
+
+// Función para actualizar horario
+function refreshSchedule() {
+    loadTimeSlots();
+}
+
+// Inicializar página
+document.addEventListener('DOMContentLoaded', function() {
+    generateDateSelector();
+    updateSelectedDateDisplay();
+    loadTimeSlots();
+});
+</script>
+{% endblock %}

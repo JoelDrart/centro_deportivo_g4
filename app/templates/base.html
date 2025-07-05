@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>{% block title %}Centro Deportivo{% endblock %}</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+            rel="stylesheet"
+        />
+    </head>
+    <body class="bg-gray-100 min-h-screen flex flex-col">
+        <!-- Navigation -->
+        <nav class="bg-blue-600 text-white shadow-lg">
+            <div class="container mx-auto px-4">
+                <div class="flex justify-between items-center py-4">
+                    <div class="flex items-center space-x-4">
+                        <i class="fas fa-dumbbell text-2xl"></i>
+                        <h1 class="text-xl font-bold">Centro Deportivo</h1>
+                    </div>
+
+                    <div class="flex items-center space-x-4">
+                        {% if current_user.is_authenticated %}
+                        <a
+                            href="{{ url_for('main.dashboard') }}"
+                            class="hover:text-blue-200"
+                            >Dashboard</a
+                        >
+                        <a
+                            href="{{ url_for('reservations.my_reservations') }}"
+                            class="hover:text-blue-200"
+                            >Mis Reservas</a
+                        >
+                        <a
+                            href="{{ url_for('auth.logout') }}"
+                            class="hover:text-blue-200"
+                            >Salir</a
+                        >
+                        {% else %}
+                        <a
+                            href="{{ url_for('auth.login') }}"
+                            class="hover:text-blue-200"
+                            >Iniciar Sesión</a
+                        >
+                        <a
+                            href="{{ url_for('auth.register') }}"
+                            class="bg-blue-500 px-4 py-2 rounded hover:bg-blue-400"
+                            >Registrarse</a
+                        >
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %} {% if
+        messages %}
+        <div class="container mx-auto px-4 mt-4">
+            {% for category, message in messages %}
+            <div
+                class="alert alert-{{ category }} bg-{{ 'green' if category == 'success' else 'red' }}-100 border border-{{ 'green' if category == 'success' else 'red' }}-400 text-{{ 'green' if category == 'success' else 'red' }}-700 px-4 py-3 rounded mb-4"
+            >
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %} {% endwith %}
+
+        <!-- Main Content -->
+        <main class="container mx-auto px-4 py-8 flex-1">
+            {% block content %}{% endblock %}
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-gray-800 text-white mt-auto">
+            <div class="container mx-auto px-4 py-8">
+                <div class="text-center">
+                    <p>
+                        &copy; 2024 Centro Deportivo. Todos los derechos
+                        reservados.
+                    </p>
+                </div>
+            </div>
+        </footer>
+    </body>
+</html>

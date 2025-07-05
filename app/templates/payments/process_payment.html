@@ -1,0 +1,102 @@
+{% extends "base.html" %} {% block title %}Pago de Reserva{% endblock %} {%
+block content %}
+<div class="max-w-lg mx-auto bg-white rounded-lg shadow-md p-8 mt-8">
+    <h2 class="text-2xl font-bold mb-4">Pagar Reserva</h2>
+    <p class="mb-2">
+        <span class="font-semibold">Cancha:</span> {{ reservation.court.name }}
+    </p>
+    <p class="mb-2">
+        <span class="font-semibold">Fecha:</span> {{
+        reservation.start_time.strftime('%d/%m/%Y') }}
+    </p>
+    <p class="mb-2">
+        <span class="font-semibold">Hora:</span> {{
+        reservation.start_time.strftime('%H:%M') }} - {{
+        reservation.end_time.strftime('%H:%M') }}
+    </p>
+    <p class="mb-4">
+        <span class="font-semibold">Total a pagar:</span> ${{
+        "%.2f"|format(reservation.total_amount) }}
+    </p>
+
+    <form
+        method="POST"
+        action="{{ url_for('payments.complete_payment', reservation_id=reservation.id) }}"
+        class="space-y-4"
+    >
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+        <div>
+            <label for="payment_method" class="block font-medium mb-1"
+                >Método de pago</label
+            >
+            <select
+                name="payment_method"
+                id="payment_method"
+                class="w-full border rounded px-3 py-2"
+                required
+            >
+                <option value="credit_card">Tarjeta de crédito</option>
+                <option value="debit_card">Tarjeta de débito</option>
+                <option value="paypal">PayPal</option>
+                <option value="bank_transfer">Transferencia bancaria</option>
+            </select>
+        </div>
+        <div id="card-fields">
+            <label class="block font-medium mb-1"
+                >Datos de la tarjeta (simulado)</label
+            >
+            <input
+                type="text"
+                name="card_number"
+                class="w-full border rounded px-3 py-2 mb-2"
+                placeholder="Número de tarjeta"
+                required
+            />
+            <input
+                type="text"
+                name="card_expiry"
+                class="w-full border rounded px-3 py-2 mb-2"
+                placeholder="MM/AA"
+                required
+            />
+            <input
+                type="text"
+                name="card_cvv"
+                class="w-full border rounded px-3 py-2 mb-2"
+                placeholder="CVV"
+                required
+            />
+            <input
+                type="text"
+                name="card_name"
+                class="w-full border rounded px-3 py-2"
+                placeholder="Nombre en la tarjeta"
+                required
+            />
+        </div>
+        <button
+            type="submit"
+            class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+        >
+            Pagar
+        </button>
+    </form>
+</div>
+<script>
+    // Oculta los campos de tarjeta si el método no es tarjeta
+    document
+        .getElementById("payment_method")
+        .addEventListener("change", function () {
+            const cardFields = document.getElementById("card-fields");
+            if (this.value === "credit_card" || this.value === "debit_card") {
+                cardFields.style.display = "";
+            } else {
+                cardFields.style.display = "none";
+            }
+        });
+    // Inicializa el estado al cargar
+    document
+        .getElementById("payment_method")
+        .dispatchEvent(new Event("change"));
+</script>
+{% endblock %}
