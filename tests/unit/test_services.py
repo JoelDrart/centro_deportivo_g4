@@ -1,4 +1,7 @@
 import pytest
+from app.models.payment import PaymentMethod, PaymentStatus
+from app.models.reservation import ReservationStatus
+
 from datetime import datetime, timedelta
 from app.services.reservation_service import ReservationService
 from app.services.payment_service import PaymentService

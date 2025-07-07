@@ -7,7 +7,7 @@ from app import create_app, db
 from app.models.user import User
 from app.models.court import Court
 from app.models.reservation import Reservation
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
 from app.config import TestingConfig
 
 @pytest.fixture(scope='module')
@@ -40,7 +40,9 @@ def init_database(test_app):
         name="Test Court",
         sport_type="futbol",
         capacity=10,
-        hourly_rate=50.0
+        hourly_rate=50.0,
+        opening_time=time(8, 0),  # Añade esto
+        closing_time=time(22, 0)   # Añade esto
     )
     db.session.add(court)
     

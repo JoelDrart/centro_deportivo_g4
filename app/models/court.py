@@ -1,6 +1,7 @@
 from app import db
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Time
+from datetime import time  # Añade esta importación
 
 class Court(db.Model):
     __tablename__ = 'courts'
@@ -13,9 +14,9 @@ class Court(db.Model):
     description = db.Column(db.Text)
     image_url = db.Column(db.String(200))
     is_active = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    opening_time = db.Column(Time, nullable=False, default='08:00:00')   # <-- Agregado
-    closing_time = db.Column(Time, nullable=False, default='22:00:00')   # <-- Agregado
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    opening_time = db.Column(Time, nullable=False, default=time(8, 0))   # Cambiado a objeto time
+    closing_time = db.Column(Time, nullable=False, default=time(22, 0))  # Cambiado a objeto time
     
     # Relationships
     reservations = db.relationship('Reservation', backref='court', lazy=True)

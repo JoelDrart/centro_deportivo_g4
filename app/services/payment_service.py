@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from app.models.user import db
 from app.models.payment import Payment, PaymentStatus, PaymentMethod
 from app.services.email_service import EmailService
@@ -27,7 +27,7 @@ class PaymentService:
             # Simular procesamiento del pago
             if PaymentService._simulate_payment_gateway(payment_method, amount, card_data):
                 payment.status = PaymentStatus.COMPLETED
-                payment.completed_at = datetime.utcnow()
+                payment.completed_at = datetime.now(timezone.utc)
                 
                 # Confirmar la reserva
                 ReservationService.confirm_reservation(reservation_id)

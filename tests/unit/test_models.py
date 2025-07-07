@@ -1,4 +1,6 @@
 import pytest
+from app import db
+
 from datetime import datetime, timedelta
 from app.models.user import User
 from app.models.court import Court

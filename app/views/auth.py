@@ -5,7 +5,7 @@ from app.utils.validators import FormValidator, ValidationError
 from app.services.email_service import EmailService
 from werkzeug.security import generate_password_hash
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -208,7 +208,7 @@ def forgot_password():
             # Generar token de reset
             token = secrets.token_urlsafe(32)
             user.reset_token = token
-            user.reset_token_expires = datetime.utcnow() + timedelta(hours=1)
+            user.reset_token_expires = datetime.now(timezone.utc) + timedelta(hours=1)
             db.session.commit()
             
             # Enviar email
@@ -224,7 +224,7 @@ def reset_password(token):
     """Resetear contraseña con token"""
     user = User.query.filter_by(reset_token=token).first()
     
-    if not user or user.reset_token_expires < datetime.utcnow():
+    if not user or user.reset_token_expires < datetime.now(timezone.utc):
         flash('Token de reset inválido o expirado', 'error')
         return redirect(url_for('auth.forgot_password'))
     
