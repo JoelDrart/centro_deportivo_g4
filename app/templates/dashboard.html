@@ -1,15 +1,64 @@
 {% extends "base.html" %} {% block title %}Panel de Usuario{% endblock %} {%
 block content %}
 <div class="container mx-auto py-8">
-    <h2 class="text-2xl font-bold mb-4">Tus Reservas</h2>
+    <h2 class="text-2xl font-bold mb-6">Tus Reservas</h2>
     {% if reservations %}
-    <ul class="list-disc pl-6">
-        {% for r in reservations %}
-        <li>
-            Reserva #{{ r.id }} - {{ r.court.name }} - {{ r.date }} {{ r.time }}
-        </li>
-        {% endfor %}
-    </ul>
+    <div class="overflow-x-auto">
+        <table class="min-w-full bg-white rounded-lg shadow-md">
+            <thead>
+                <tr class="bg-gray-100 text-gray-700 text-sm">
+                    <th class="py-2 px-4 text-left">#</th>
+                    <th class="py-2 px-4 text-left">Cancha</th>
+                    <th class="py-2 px-4 text-left">Deporte</th>
+                    <th class="py-2 px-4 text-left">Fecha</th>
+                    <th class="py-2 px-4 text-left">Hora</th>
+                    <th class="py-2 px-4 text-left">Estado</th>
+                    <th class="py-2 px-4 text-left">Total</th>
+                    <th class="py-2 px-4 text-left">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in reservations %}
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="py-2 px-4 font-semibold">#{{ r.id }}</td>
+                    <td class="py-2 px-4">{{ r.court.name }}</td>
+                    <td class="py-2 px-4">{{ r.court.sport_type|title }}</td>
+                    <td class="py-2 px-4">
+                        {{ r.start_time.strftime('%d/%m/%Y') if r.start_time
+                        else r.date }}
+                    </td>
+                    <td class="py-2 px-4">
+                        {{ r.start_time.strftime('%H:%M') ~ ' - ' ~
+                        r.end_time.strftime('%H:%M') if r.start_time and
+                        r.end_time else r.time }}
+                    </td>
+                    <td class="py-2 px-4">
+                        <span
+                            class="inline-block px-2 py-1 rounded {% if r.status.value == 'confirmed' %}bg-green-100 text-green-700 {% elif r.status.value == 'pending' %}bg-yellow-100 text-yellow-700 {% elif r.status.value == 'cancelled' %}bg-red-100 text-red-700 {% else %}bg-gray-100 text-gray-700{% endif %}"
+                        >
+                            {{ r.status.value|capitalize }}
+                        </span>
+                    </td>
+                    <td class="py-2 px-4">${{ '%.2f' % r.total_amount }}</td>
+                    <td class="py-2 px-4 space-x-2">
+                        <a
+                            href="{{ url_for('reservations.court_schedule', court_id=r.court.id, date=r.start_time.strftime('%Y-%m-%d')) }}"
+                            class="text-blue-600 hover:underline text-sm"
+                            >Ver Horario</a
+                        >
+                        {% if r.status.value in ['pending', 'confirmed'] %}
+                        <a
+                            href="{{ url_for('reservations.cancel_reservation', reservation_id=r.id) }}"
+                            class="text-red-600 hover:underline text-sm"
+                            >Cancelar</a
+                        >
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
     {% else %}
     <p>No tienes reservas activas.</p>
     {% endif %}

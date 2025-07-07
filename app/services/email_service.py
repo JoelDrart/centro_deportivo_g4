@@ -66,3 +66,20 @@ class EmailService:
         <p>El enlace expirará en 1 hora.</p>
         """
         EmailService.send_email(user.email, subject, template)
+    
+    @staticmethod
+    def send_reservation_cancellation(user, reservation):
+        subject = f"Reserva Cancelada - {reservation.court.name}"
+        template = f"""
+        <h2>Reserva Cancelada</h2>
+        <p>Hola {user.get_full_name()},</p>
+        <p>Tu reserva ha sido cancelada con los siguientes detalles:</p>
+        <ul>
+            <li><strong>Cancha:</strong> {reservation.court.name}</li>
+            <li><strong>Fecha:</strong> {reservation.start_time.strftime('%d/%m/%Y')}</li>
+            <li><strong>Hora:</strong> {reservation.start_time.strftime('%H:%M')} - {reservation.end_time.strftime('%H:%M')}</li>
+            <li><strong>Total:</strong> ${reservation.total_amount:.2f}</li>
+        </ul>
+        <p>Si tienes dudas, contáctanos.</p>
+        """
+        EmailService.send_email(user.email, subject, template)

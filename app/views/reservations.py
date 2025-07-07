@@ -3,6 +3,8 @@ from flask_login import login_required, current_user
 from app.models.court import Court
 from app.models.reservation import Reservation
 from app.services.reservation_service import ReservationService
+from app.services.email_service import EmailService
+from app.models.user import User
 from datetime import datetime, timedelta
 import json
 
@@ -76,17 +78,19 @@ def my_reservations():
     today = datetime.today().date()
     return render_template('reservations/my_reservations.html', reservations=reservations, today=today)
 
-@reservations_bp.route('/cancel_reservation/<int:reservation_id>')
+@reservations_bp.route('/cancel_reservation/<int:reservation_id>', methods=['POST'])
 @login_required
 def cancel_reservation(reservation_id):
-    """Cancelar una reserva"""
     try:
+        reservation = Reservation.query.get_or_404(reservation_id)
         ReservationService.cancel_reservation(reservation_id, current_user.id)
-        flash('Reserva cancelada exitosamente', 'success')
+        # Notificar por email
+        EmailService.send_reservation_cancellation(current_user, reservation)
+        flash(f'Reserva #{reservation.id} cancelada correctamente.', 'success')
+        return jsonify(success=True)
     except ValueError as e:
-        flash(str(e), 'error')
-    
-    return redirect(url_for('reservations.my_reservations'))
+        flash(f'Error al cancelar la reserva: {str(e)}', 'error')
+        return jsonify(success=False, message=str(e)), 400
 
 @reservations_bp.route('/api/court/<int:court_id>/schedule')
 @login_required
