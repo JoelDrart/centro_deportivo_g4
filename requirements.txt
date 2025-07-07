@@ -16,3 +16,5 @@ email-validator==2.0.0
 bcrypt==4.0.1
 python-dotenv==1.0.0
 Pillow==10.0.1
+factory-boy==3.2.1
+Faker==37.4.0

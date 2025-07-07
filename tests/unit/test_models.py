@@ -1,64 +1,53 @@
-"""
-Tests unitarios para los modelos del sistema.
-"""
 import pytest
+from datetime import datetime, timedelta
 from app.models.user import User
 from app.models.court import Court
-from app.models.reservation import Reservation
-from app.models.payment import Payment
+from app.models.reservation import Reservation, ReservationStatus
+from app.models.payment import Payment, PaymentStatus, PaymentMethod
 
+def test_user_creation(init_database):
+    user = User.query.first()
+    assert user.username == "testuser"
+    assert user.email == "test@example.com"
+    assert user.get_full_name() == "Test User"
+    assert user.check_password("password123") is True
+    assert user.check_password("wrongpass") is False
 
-class TestUser:
-    """Tests para el modelo User."""
-    
-    def test_user_creation(self):
-        """Test de creación de usuario."""
-        pass
-    
-    def test_user_password_hashing(self):
-        """Test de hash de contraseña."""
-        pass
-    
-    def test_user_authentication(self):
-        """Test de autenticación de usuario."""
-        pass
+def test_court_creation(init_database):
+    court = Court.query.first()
+    assert court.name == "Test Court"
+    assert court.sport_type == "futbol"
+    assert court.capacity == 10
+    assert court.hourly_rate == 50.0
 
+def test_reservation_creation(init_database):
+    reservation = Reservation.query.first()
+    assert reservation.user_id == 1
+    assert reservation.court_id == 1
+    assert reservation.total_amount == 100.0
+    assert reservation.status == ReservationStatus.PENDING
+    assert reservation.is_active() is True
 
-class TestCourt:
-    """Tests para el modelo Court."""
+def test_reservation_status_changes(init_database):
+    reservation = Reservation.query.first()
     
-    def test_court_creation(self):
-        """Test de creación de cancha."""
-        pass
+    reservation.status = ReservationStatus.CONFIRMED
+    assert reservation.is_active() is True
     
-    def test_court_availability(self):
-        """Test de disponibilidad de cancha."""
-        pass
+    reservation.status = ReservationStatus.CANCELLED
+    assert reservation.is_active() is False
 
-
-class TestReservation:
-    """Tests para el modelo Reservation."""
+def test_payment_creation(init_database):
+    payment = Payment(
+        user_id=1,
+        reservation_id=1,
+        amount=100.0,
+        payment_method=PaymentMethod.CREDIT_CARD,
+        transaction_id="TEST123"
+    )
+    db.session.add(payment)
+    db.session.commit()
     
-    def test_reservation_creation(self):
-        """Test de creación de reserva."""
-        pass
-    
-    def test_reservation_validation(self):
-        """Test de validación de reserva."""
-        pass
-    
-    def test_reservation_conflict_detection(self):
-        """Test de detección de conflictos de reserva."""
-        pass
-
-
-class TestPayment:
-    """Tests para el modelo Payment."""
-    
-    def test_payment_creation(self):
-        """Test de creación de pago."""
-        pass
-    
-    def test_payment_status_update(self):
-        """Test de actualización de estado de pago."""
-        pass
+    assert payment.amount == 100.0
+    assert payment.status == PaymentStatus.PENDING
+    assert payment.payment_method == PaymentMethod.CREDIT_CARD

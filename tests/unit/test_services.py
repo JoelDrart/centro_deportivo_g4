@@ -1,47 +1,70 @@
-"""
-Tests unitarios para los servicios del sistema.
-"""
 import pytest
-from app.services.email_service import EmailService
-from app.services.payment_service import PaymentService
+from datetime import datetime, timedelta
 from app.services.reservation_service import ReservationService
+from app.services.payment_service import PaymentService
+from app.models import db, User, Court, Reservation, Payment
 
+def test_check_availability(init_database):
+    court = Court.query.first()
+    user = User.query.first()
+    
+    # Horario disponible
+    available = ReservationService.check_availability(
+        court.id,
+        datetime.now() + timedelta(days=2),
+        datetime.now() + timedelta(days=2, hours=1)
+    )
+    assert available is True
+    
+    # Horario ocupado
+    occupied = ReservationService.check_availability(
+        court.id,
+        datetime.now() + timedelta(days=1),
+        datetime.now() + timedelta(days=1, hours=1)
+    )
+    assert occupied is False
 
-class TestEmailService:
-    """Tests para el servicio de email."""
+def test_create_reservation(init_database):
+    court = Court.query.first()
+    user = User.query.first()
     
-    def test_send_confirmation_email(self):
-        """Test de envío de email de confirmación."""
-        pass
+    start_time = datetime.now() + timedelta(days=3)
+    end_time = start_time + timedelta(hours=1.5)
     
-    def test_send_reminder_email(self):
-        """Test de envío de email de recordatorio."""
-        pass
+    reservation = ReservationService.create_reservation(
+        user.id,
+        court.id,
+        start_time,
+        end_time,
+        "Test note"
+    )
+    
+    assert reservation is not None
+    assert reservation.user_id == user.id
+    assert reservation.court_id == court.id
+    assert reservation.total_amount == 75.0  # 1.5 horas * 50.0
+    assert reservation.notes == "Test note"
 
+def test_confirm_reservation(init_database):
+    reservation = Reservation.query.first()
+    
+    confirmed_reservation = ReservationService.confirm_reservation(reservation.id)
+    
+    assert confirmed_reservation.status == ReservationStatus.CONFIRMED
 
-class TestPaymentService:
-    """Tests para el servicio de pagos."""
+def test_process_payment(init_database):
+    reservation = Reservation.query.first()
+    user = User.query.first()
     
-    def test_process_payment(self):
-        """Test de procesamiento de pago."""
-        pass
+    payment = PaymentService.process_payment(
+        user.id,
+        reservation.id,
+        PaymentMethod.CREDIT_CARD,
+        100.0
+    )
     
-    def test_refund_payment(self):
-        """Test de reembolso de pago."""
-        pass
-
-
-class TestReservationService:
-    """Tests para el servicio de reservas."""
-    
-    def test_create_reservation(self):
-        """Test de creación de reserva."""
-        pass
-    
-    def test_cancel_reservation(self):
-        """Test de cancelación de reserva."""
-        pass
-    
-    def test_check_availability(self):
-        """Test de verificación de disponibilidad."""
-        pass
+    assert payment is not None
+    assert payment.reservation_id == reservation.id
+    assert payment.amount == 100.0
+    assert payment.payment_method == PaymentMethod.CREDIT_CARD
+    assert payment.status in [PaymentStatus.COMPLETED, PaymentStatus.FAILED]
