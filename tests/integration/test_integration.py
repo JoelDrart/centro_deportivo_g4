@@ -12,12 +12,16 @@ from app.services import ReservationService, PaymentService
 def test_integration_reservation_payment_email(init_database):
     user = db.session.get(User, 1)
     court = db.session.get(Court, 1)
-    # Ajustar horario para que esté dentro del rango 8:00-22:00
-    start_time = datetime.now().replace(hour=10, minute=0) + timedelta(days=1)
+    
+    # Use a clearly available time slot
+    start_time = datetime.now().replace(hour=10, minute=0, second=0, microsecond=0) + timedelta(days=365)
     end_time = start_time + timedelta(hours=1)
     
     with patch('app.services.email_service.EmailService.send_email'), \
          patch('app.services.payment_service.PaymentService._simulate_payment_gateway', return_value=True):
+        
+        # Verify no conflicting reservations exist
+        assert ReservationService.check_availability(court.id, start_time, end_time), "Court should be available"
         
         reservation = ReservationService.create_reservation(user.id, court.id, start_time, end_time)
         payment = PaymentService.process_payment(
