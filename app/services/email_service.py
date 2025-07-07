@@ -11,10 +11,14 @@ class EmailService:
     
     @staticmethod
     def send_email(to, subject, template, **kwargs):
+        
+        if current_app.config.get('TESTING'):
+            return  # No enviar emails en modo testing
+        
         msg = Message(
             subject=subject,
             recipients=[to],
-            sender=current_app.config['MAIL_USERNAME']
+            sender=current_app.config.get['MAIL_DEFAULT_SENDER']
         )
         msg.body = template
         msg.html = template

@@ -28,6 +28,7 @@ class TestingConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
     WTF_CSRF_ENABLED = False
+    MAIL_SUPPRESS_SEND = True  # Evitar envío real de emails
 
 class ProductionConfig(Config):
     DEBUG = False
