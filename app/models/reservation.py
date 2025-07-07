@@ -1,5 +1,5 @@
 from app import db
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 class ReservationStatus(Enum):
@@ -19,8 +19,8 @@ class Reservation(db.Model):
     total_amount = db.Column(db.Float, nullable=False)
     status = db.Column(db.Enum(ReservationStatus), default=ReservationStatus.PENDING)
     notes = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
     
     # Relationships
     payments = db.relationship('Payment', backref='reservation', lazy=True)

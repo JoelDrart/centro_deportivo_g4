@@ -1,5 +1,5 @@
 from app import db
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 class PaymentStatus(Enum):
@@ -25,8 +25,9 @@ class Payment(db.Model):
     status = db.Column(db.Enum(PaymentStatus), default=PaymentStatus.PENDING)
     transaction_id = db.Column(db.String(100), unique=True)
     gateway_response = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
     completed_at = db.Column(db.DateTime)
+    
     
     def __repr__(self):
         return f'<Payment {self.id} - ${self.amount}>'

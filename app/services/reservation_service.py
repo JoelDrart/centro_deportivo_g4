@@ -1,3 +1,4 @@
+from app.models.payment import PaymentStatus
 from app.models.user import db
 from app.models.reservation import Reservation, ReservationStatus
 from app.models.court import Court
@@ -29,14 +30,17 @@ class ReservationService:
     @staticmethod
     def create_reservation(user_id, court_id, start_time, end_time, notes=None):
         """Crear una nueva reserva"""
-        # Verificar disponibilidad
-        if not ReservationService.check_availability(court_id, start_time, end_time):
-            raise ValueError("La cancha no está disponible en el horario seleccionado")
-        
-        # Obtener cancha para calcular el costo
         court = db.session.get(Court, court_id)
         if not court:
             raise ValueError("Cancha no encontrada")
+        
+        # Validar horario de la cancha
+        if (start_time.time() < court.opening_time) or (end_time.time() > court.closing_time):
+            raise ValueError("La reserva está fuera del horario de la cancha")
+        
+        # Verificar disponibilidad
+        if not ReservationService.check_availability(court_id, start_time, end_time):
+            raise ValueError("La cancha no está disponible en el horario seleccionado")
         
         # Calcular duración y costo
         duration = (end_time - start_time).total_seconds() / 3600
@@ -76,18 +80,25 @@ class ReservationService:
     @staticmethod
     def cancel_reservation(reservation_id, user_id=None):
         """Cancelar una reserva"""
-        reservation = Reservation.query.get(reservation_id)
+        reservation = db.session.get(Reservation, reservation_id)
         if not reservation:
             raise ValueError("Reserva no encontrada")
         
         if user_id and reservation.user_id != user_id:
             raise ValueError("No tienes permisos para cancelar esta reserva")
         
+        # Actualizar estado de la reserva
         reservation.status = ReservationStatus.CANCELLED
-        db.session.commit()
         
+        # Actualizar pagos asociados
+        for payment in reservation.payments:
+            if payment.status == PaymentStatus.COMPLETED:
+                payment.status = PaymentStatus.REFUNDED
+                payment.gateway_response = "Refunded due to reservation cancellation"
+        
+        db.session.commit()
         return reservation
-    
+
     @staticmethod
     def get_user_reservations(user_id, include_cancelled=False):
         """Obtener reservas de un usuario"""
