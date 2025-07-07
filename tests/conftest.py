@@ -1,18 +1,18 @@
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import pytest
 from app import create_app, db
 from app.models.user import User
 from app.models.court import Court
 from app.models.reservation import Reservation
 from datetime import datetime, timedelta
+from app.config import TestingConfig
 
 @pytest.fixture(scope='module')
 def test_app():
-    app = create_app('testing')
-    app.config.update({
-        "TESTING": True,
-        "SQLALCHEMY_DATABASE_URI": "sqlite:///centro_deportivo.db",
-        "WTF_CSRF_ENABLED": False
-    })
+    app = create_app(TestingConfig)
     
     with app.app_context():
         db.create_all()
@@ -27,7 +27,6 @@ def test_client(test_app):
 def init_database(test_app):
     db.create_all()
     
-    # Crear datos de prueba
     user = User(
         username="testuser",
         email="test@example.com",
@@ -59,3 +58,4 @@ def init_database(test_app):
     yield db
     
     db.session.remove()
+    db.drop_all()
