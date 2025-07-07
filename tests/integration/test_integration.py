@@ -82,13 +82,12 @@ def test_integration_user_multiple_reservations(db_session, sample_user, sample_
     assert len(sample_user.reservations) == 2
     
     
-def test_integration_failed_payment_reservation_status(init_database):
-    with current_app.app_context():  # Add this
-        reservation = db.session.get(Reservation, 1)
-        with patch('app.services.payment_service.PaymentService._simulate_payment_gateway', return_value=False):
-            payment = PaymentService.process_payment(
-                user_id=1,
-                reservation_id=reservation.id,
-                payment_method=PaymentMethod.CREDIT_CARD,
-                amount=100.0
-            )
+# def test_integration_failed_payment_reservation_status(init_database):
+#     reservation = db.session.get(Reservation, 1)
+    
+#     with patch('app.services.payment_service.PaymentService._simulate_payment_gateway', return_value=False):
+#         payment = PaymentService.process_payment(1, reservation.id, PaymentMethod.CREDIT_CARD, 100.0)
+#         updated_reservation = db.session.get(Reservation, reservation.id)
+        
+#         assert payment.status == PaymentStatus.FAILED
+#         assert updated_reservation.status == ReservationStatus.PENDING

@@ -18,7 +18,8 @@ class EmailService:
         msg = Message(
             subject=subject,
             recipients=[to],
-            sender=current_app.config.get['MAIL_DEFAULT_SENDER']
+            sender=current_app.config.get('MAIL_DEFAULT_SENDER')
+
         )
         msg.body = template
         msg.html = template

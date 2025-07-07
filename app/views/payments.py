@@ -49,6 +49,8 @@ def complete_payment(reservation_id):
             card_data=card_data
         )
         
+        print("Pago procesado:", payment)
+        
         if payment.status.value == 'completed':
             flash('Pago procesado exitosamente', 'success')
             return redirect(url_for('reservations.my_reservations'))

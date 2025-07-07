@@ -30,4 +30,4 @@ class Payment(db.Model):
     
     
     def __repr__(self):
-        return f'<Payment {self.id} - ${self.amount}>'
+        return f'<Payment {self.id} - ${self.amount} - {self.status} - {self.payment_method} - {self.gateway_response}>'  
