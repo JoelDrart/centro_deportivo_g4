@@ -45,13 +45,14 @@ def init_database(test_app):
     db.session.commit()
     
     # Reserva en un horario que no interfiera con las pruebas
+    # Cambiamos el estado a PENDING para que el test funcione correctamente
     reservation = Reservation(
         user_id=user.id,
         court_id=court.id,
-        start_time=datetime.now() + timedelta(days=365),
-        end_time=datetime.now() + timedelta(days=365, hours=1),
+        start_time=datetime.now() + timedelta(days=1),  # Reserva para mañana
+        end_time=datetime.now() + timedelta(days=1, hours=1),
         total_amount=100.0,
-        status=ReservationStatus.CONFIRMED
+        status=ReservationStatus.PENDING  # Cambiado de CONFIRMED a PENDING
     )
     db.session.add(reservation)
     db.session.commit()

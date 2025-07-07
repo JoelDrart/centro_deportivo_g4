@@ -2,7 +2,7 @@ import pytest
 from app.models.payment import PaymentMethod, PaymentStatus
 from app.models.reservation import ReservationStatus
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from app.services.reservation_service import ReservationService
 from app.services.payment_service import PaymentService
 from app.models import db, User, Court, Reservation, Payment
@@ -11,7 +11,7 @@ def test_check_availability(init_database):
     court = Court.query.first()
     user = User.query.first()
     
-    # Horario disponible
+    # Horario disponible (días 2 y 3 están libres)
     available = ReservationService.check_availability(
         court.id,
         datetime.now() + timedelta(days=2),
@@ -19,7 +19,7 @@ def test_check_availability(init_database):
     )
     assert available is True
     
-    # Horario ocupado
+    # Horario ocupado (día 1 está ocupado por la reserva del fixture)
     occupied = ReservationService.check_availability(
         court.id,
         datetime.now() + timedelta(days=1),
@@ -31,7 +31,9 @@ def test_create_reservation(init_database):
     court = Court.query.first()
     user = User.query.first()
     
+    # Usar horario dentro del horario de la cancha (8:00 - 22:00)
     start_time = datetime.now() + timedelta(days=3)
+    start_time = start_time.replace(hour=10, minute=0, second=0, microsecond=0)
     end_time = start_time + timedelta(hours=1.5)
     
     reservation = ReservationService.create_reservation(
