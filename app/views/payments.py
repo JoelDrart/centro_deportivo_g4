@@ -30,15 +30,16 @@ def complete_payment(reservation_id):
     
     try:
         payment_method_str = request.form.get('payment_method')
+        print("Método de pago recibido:", payment_method_str)
         payment_method = PaymentMethod(payment_method_str)
         
-        # Simular datos de tarjeta (en producción usar formulario seguro)
         card_data = {
             'number': request.form.get('card_number'),
             'expiry': request.form.get('card_expiry'),
             'cvv': request.form.get('card_cvv'),
             'name': request.form.get('card_name')
         }
+        print("Datos de tarjeta recibidos:", card_data)
         
         payment = PaymentService.process_payment(
             user_id=current_user.id,
@@ -56,5 +57,7 @@ def complete_payment(reservation_id):
             return redirect(url_for('payments.process_payment', reservation_id=reservation.id))
             
     except Exception as e:
+        print("ERROR AL PROCESAR EL PAGO:", e)
+        import traceback; traceback.print_exc()
         flash(f'Error al procesar el pago: {str(e)}', 'error')
         return redirect(url_for('payments.process_payment', reservation_id=reservation.id))
