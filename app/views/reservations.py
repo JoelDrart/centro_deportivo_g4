@@ -23,16 +23,16 @@ def make_reservation():
             court_id = int(request.form.get('court_id'))
             date_str = request.form.get('date')
             start_time_str = request.form.get('start_time')
-            end_time_str = request.form.get('end_time')
+            duration = int(request.form.get('duration'))  # <-- NUEVO
             notes = request.form.get('notes')
 
             # Convertir strings a datetime
             date = datetime.strptime(date_str, '%Y-%m-%d').date()
             start_time = datetime.strptime(start_time_str, '%H:%M').time()
-            end_time = datetime.strptime(end_time_str, '%H:%M').time()
-
             start_datetime = datetime.combine(date, start_time)
-            end_datetime = datetime.combine(date, end_time)
+
+            # Calcular hora de fin
+            end_datetime = start_datetime + timedelta(hours=duration)
 
             # Validaciones
             if start_datetime <= datetime.now():
@@ -56,7 +56,7 @@ def make_reservation():
             return redirect(url_for('payments.process_payment', reservation_id=reservation.id))
 
         except Exception as e:
-            print("ERROR AL CREAR RESERVA:", e)  # Esto lo verás en la terminal
+            print("ERROR AL CREAR RESERVA:", e)
             flash(f'Error al crear la reserva: {e}', 'error')
             return redirect(url_for('reservations.make_reservation'))
 

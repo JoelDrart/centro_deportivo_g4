@@ -24,6 +24,8 @@ endblock %} {% block content %}
                     <option
                         value="{{ court.id }}"
                         data-rate="{{ court.hourly_rate }}"
+                        data-opening="{{ court.opening_time.strftime('%H:%M') }}"
+                        data-closing="{{ court.closing_time.strftime('%H:%M') }}"
                     >
                         {{ court.name }} ({{ court.sport_type.title() }}) - ${{
                         court.hourly_rate }}/hora
@@ -52,34 +54,38 @@ endblock %} {% block content %}
 
                 <div>
                     <label
+                        for="duration"
+                        class="block text-sm font-medium text-gray-700 mb-2"
+                    >
+                        Duración (horas)
+                    </label>
+                    <select
+                        id="duration"
+                        name="duration"
+                        required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                        <option value="1">1 hora</option>
+                        <option value="2">2 horas</option>
+                        <option value="3">3 horas</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label
                         for="start_time"
                         class="block text-sm font-medium text-gray-700 mb-2"
                     >
                         Hora Inicio
                     </label>
-                    <input
-                        type="time"
+                    <select
                         id="start_time"
                         name="start_time"
                         required
                         class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                </div>
-
-                <div>
-                    <label
-                        for="end_time"
-                        class="block text-sm font-medium text-gray-700 mb-2"
                     >
-                        Hora Fin
-                    </label>
-                    <input
-                        type="time"
-                        id="end_time"
-                        name="end_time"
-                        required
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
+                        <option value="">Selecciona fecha y duración</option>
+                    </select>
                 </div>
             </div>
 
@@ -132,8 +138,8 @@ endblock %} {% block content %}
     document.addEventListener("DOMContentLoaded", function () {
         const courtSelect = document.getElementById("court_id");
         const dateInput = document.getElementById("date");
-        const startTimeInput = document.getElementById("start_time");
-        const endTimeInput = document.getElementById("end_time");
+        const durationSelect = document.getElementById("duration");
+        const startTimeSelect = document.getElementById("start_time");
         const costPreview = document.getElementById("cost-preview");
         const durationText = document.getElementById("duration-text");
         const rateText = document.getElementById("rate-text");
@@ -142,34 +148,115 @@ endblock %} {% block content %}
         function updateCostPreview() {
             const selectedCourt =
                 courtSelect.options[courtSelect.selectedIndex];
-            const startTime = startTimeInput.value;
-            const endTime = endTimeInput.value;
+            const startTime = startTimeSelect.value;
+            const duration = parseInt(durationSelect.value);
 
-            if (selectedCourt.value && startTime && endTime) {
+            if (selectedCourt.value && startTime && duration) {
                 const rate = parseFloat(selectedCourt.dataset.rate);
-                const start = new Date("2000-01-01T" + startTime);
-                const end = new Date("2000-01-01T" + endTime);
+                const total = duration * rate;
 
-                if (end > start) {
-                    const hours = (end - start) / (1000 * 60 * 60);
-                    const total = hours * rate;
+                durationText.textContent = `${duration} hora(s)`;
+                rateText.textContent = `${rate.toFixed(2)}/hora`;
+                totalCost.textContent = `${total.toFixed(2)}`;
 
-                    durationText.textContent = `${hours} hora(s)`;
-                    rateText.textContent = `${rate.toFixed(2)}/hora`;
-                    totalCost.textContent = `${total.toFixed(2)}`;
-
-                    costPreview.classList.remove("hidden");
-                } else {
-                    costPreview.classList.add("hidden");
-                }
+                costPreview.classList.remove("hidden");
             } else {
                 costPreview.classList.add("hidden");
             }
         }
 
-        courtSelect.addEventListener("change", updateCostPreview);
-        startTimeInput.addEventListener("change", updateCostPreview);
-        endTimeInput.addEventListener("change", updateCostPreview);
+        async function updateAvailableTimes() {
+            startTimeSelect.innerHTML = '<option value="">Cargando...</option>';
+            const courtId = courtSelect.value;
+            const date = dateInput.value;
+            const duration = parseInt(durationSelect.value);
+
+            if (!courtId || !date || !duration) {
+                startTimeSelect.innerHTML =
+                    '<option value="">Selecciona fecha y duración</option>';
+                return;
+            }
+
+            // Obtener apertura/cierre de la cancha seleccionada
+            const selectedCourt =
+                courtSelect.options[courtSelect.selectedIndex];
+            const opening = selectedCourt.dataset.opening;
+            const closing = selectedCourt.dataset.closing;
+
+            // Llamar API para obtener slots ocupados
+            const response = await fetch(
+                `/api/court/${courtId}/schedule?date=${date}`
+            );
+            const data = await response.json();
+            const occupied = data.occupied_slots || [];
+
+            // Generar slots disponibles
+            const availableOptions = [];
+            const [openHour, openMinute] = opening.split(":").map(Number);
+            const [closeHour, closeMinute] = closing.split(":").map(Number);
+
+            for (let hour = openHour; hour <= closeHour - duration; hour++) {
+                const startStr = `${hour.toString().padStart(2, "0")}:00`;
+                const endHour = hour + duration;
+                const endStr = `${endHour.toString().padStart(2, "0")}:00`;
+
+                // Verificar si el slot está libre
+                let isFree = true;
+                for (let d = 0; d < duration; d++) {
+                    const slotStart = `${(hour + d)
+                        .toString()
+                        .padStart(2, "0")}:00`;
+                    const slotEnd = `${(hour + d + 1)
+                        .toString()
+                        .padStart(2, "0")}:00`;
+                    if (
+                        occupied.some(
+                            (slot) =>
+                                !(
+                                    slotEnd <= slot.start_time ||
+                                    slotStart >= slot.end_time
+                                )
+                        )
+                    ) {
+                        isFree = false;
+                        break;
+                    }
+                }
+
+                if (isFree) {
+                    availableOptions.push(
+                        `<option value="${startStr}">${startStr} - ${endStr}</option>`
+                    );
+                }
+            }
+
+            if (availableOptions.length === 0) {
+                startTimeSelect.innerHTML =
+                    '<option value="">No hay horarios disponibles</option>';
+            } else {
+                startTimeSelect.innerHTML =
+                    '<option value="">Selecciona hora de inicio</option>' +
+                    availableOptions.join("");
+            }
+        }
+
+        // Actualizar horarios disponibles cuando cambian cancha, fecha o duración
+        courtSelect.addEventListener("change", function () {
+            updateAvailableTimes();
+            updateCostPreview();
+        });
+        dateInput.addEventListener("change", function () {
+            updateAvailableTimes();
+            updateCostPreview();
+        });
+        durationSelect.addEventListener("change", function () {
+            updateAvailableTimes();
+            updateCostPreview();
+        });
+        startTimeSelect.addEventListener("change", updateCostPreview);
+
+        // Inicializar
+        updateAvailableTimes();
     });
 </script>
 {% endblock %}
